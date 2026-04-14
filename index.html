@@ -634,7 +634,7 @@ async function callClaudeVision(dataUrl) {
             amount: inv.amount || 0,
             tax: inv.tax || 0,
             total: inv.total || 0,
-            invoiceNumber: inv.invoice_number || '',
+            invoiceNumber: (inv.invoice_number || '').replace(/-/g, ''),
             sellerTaxId: inv.seller_tax_id || '',
             sellerName: inv.seller_name || ''
         }));

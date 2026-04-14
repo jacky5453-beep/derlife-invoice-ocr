@@ -437,6 +437,24 @@ function handleSlotFile(input, slotId) {
     reader.readAsDataURL(file);
 }
 
+function handleSlotDrop(e, slotId) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        const slot = uploadSlots.find(s => s.id === slotId);
+        if (slot) {
+            slot.dataUrl = ev.target.result;
+            slot.name = file.name;
+            slot.status = 'ready';
+        }
+        renderUploadSlots();
+    };
+    reader.readAsDataURL(file);
+}
+
 function renderUploadSlots() {
     const container = document.getElementById('uploadSlotsContainer');
     container.innerHTML = uploadSlots.map(slot => `
@@ -450,10 +468,14 @@ function renderUploadSlots() {
                        </span>
                        ${slot.error ? `<p class="text-xs text-red-500 mt-1">${slot.error}</p>` : ''}
                    </div>`
-                : `<div class="upload-zone rounded-lg p-6 text-center cursor-pointer flex-1" onclick="this.querySelector('input').click()">
+                : `<div class="upload-zone rounded-lg p-6 text-center cursor-pointer flex-1"
+                       onclick="this.querySelector('input').click()"
+                       ondragover="event.preventDefault(); this.classList.add('dragover')"
+                       ondragleave="this.classList.remove('dragover')"
+                       ondrop="handleSlotDrop(event, ${slot.id})">
                        <input type="file" accept="image/*" class="hidden" onchange="handleSlotFile(this, ${slot.id})">
                        <div class="text-3xl">📸</div>
-                       <p class="text-sm text-gray-500 mt-1">點擊上傳發票照片</p>
+                       <p class="text-sm text-gray-500 mt-1">點擊或拖曳上傳發票照片</p>
                    </div>`
             }
             <button onclick="removeSlot(${slot.id})" class="text-gray-400 hover:text-red-500 text-xl" title="移除">&times;</button>
@@ -477,12 +499,15 @@ async function recognizeAll() {
     document.getElementById('btnRecognize').disabled = true;
     document.getElementById('btnRecognize').innerHTML = '<span class="spinner"></span> 辨識中...';
 
-    for (const slot of ready) {
+    for (let i = 0; i < ready.length; i++) {
+        const slot = ready[i];
+        // 多張時每張間隔 2 秒，避免 API 過載
+        if (i > 0) await new Promise(r => setTimeout(r, 2000));
         slot.status = 'processing';
         renderUploadSlots();
 
         try {
-            const results = await callClaudeVision(slot.dataUrl);
+            const results = await callClaudeVisionWithRetry(slot.dataUrl);
             slot.status = 'done';
 
             // 將結果加入表格
@@ -500,6 +525,22 @@ async function recognizeAll() {
 
     document.getElementById('btnRecognize').disabled = false;
     document.getElementById('btnRecognize').innerHTML = '🤖 開始辨識全部';
+}
+
+// 含重試的 API 呼叫（最多 3 次，每次間隔遞增）
+async function callClaudeVisionWithRetry(dataUrl, maxRetries = 3) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            return await callClaudeVision(dataUrl);
+        } catch (e) {
+            const isOverloaded = e.message.includes('verloaded') || e.message.includes('529') || e.message.includes('rate');
+            if (isOverloaded && attempt < maxRetries) {
+                await new Promise(r => setTimeout(r, attempt * 3000));
+                continue;
+            }
+            throw e;
+        }
+    }
 }
 
 // 呼叫 Claude Vision API

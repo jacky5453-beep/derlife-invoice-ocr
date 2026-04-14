@@ -253,6 +253,7 @@ let slotCounter = 1;    // 欄位計數器
 let resultRows = [];    // 辨識結果
 let historyData = [];   // 歷史紀錄（localStorage）
 let categoryOptions = ['進貨', '費用', '固定資產', '其他'];  // 科目分類選項
+let certTypeOptions = ['三聯式', '電子發票', '收銀機發票', '電算機發票'];  // 憑證類別選項
 
 // ===== 登入 / 登出 =====
 async function googleLogin() {
@@ -373,7 +374,34 @@ function renderCategoryDatalist() {
     dl.innerHTML = categoryOptions.map(c => `<option value="${c}">`).join('');
 }
 
+// ===== 憑證類別管理 =====
+function loadCertTypeOptions() {
+    try {
+        const saved = JSON.parse(localStorage.getItem('invoice_cert_types') || '[]');
+        if (saved.length > 0) certTypeOptions = saved;
+    } catch {}
+    renderCertTypeDatalist();
+}
+
+function saveCertTypeOption(value) {
+    if (!value || certTypeOptions.includes(value)) return;
+    certTypeOptions.push(value);
+    localStorage.setItem('invoice_cert_types', JSON.stringify(certTypeOptions));
+    renderCertTypeDatalist();
+}
+
+function renderCertTypeDatalist() {
+    let dl = document.getElementById('certTypeList');
+    if (!dl) {
+        dl = document.createElement('datalist');
+        dl.id = 'certTypeList';
+        document.body.appendChild(dl);
+    }
+    dl.innerHTML = certTypeOptions.map(c => `<option value="${c}">`).join('');
+}
+
 loadCategoryOptions();
+loadCertTypeOptions();
 
 // ===== 上傳欄位管理 =====
 function addUploadSlot() {
@@ -594,12 +622,9 @@ function renderResultTable() {
                 </div>
             </td>
             <td>
-                <select onchange="updateRow(${idx}, 'certificateType', this.value)">
-                    <option value="三聯式" ${row.certificateType === '三聯式' ? 'selected' : ''}>三聯式</option>
-                    <option value="電子發票" ${row.certificateType === '電子發票' ? 'selected' : ''}>電子發票</option>
-                    <option value="收銀機發票" ${row.certificateType === '收銀機發票' ? 'selected' : ''}>收銀機發票</option>
-                    <option value="電算機發票" ${row.certificateType === '電算機發票' ? 'selected' : ''}>電算機發票</option>
-                </select>
+                <input type="text" list="certTypeList" value="${row.certificateType}"
+                    onchange="updateRow(${idx}, 'certificateType', this.value); saveCertTypeOption(this.value)"
+                    placeholder="輸入或選擇" style="width:120px">
             </td>
             <td><input type="text" value="${row.invoiceDate}" onchange="updateRow(${idx}, 'invoiceDate', this.value)" placeholder="YYYY/MM/DD"></td>
             <td><input type="number" value="${row.amount}" onchange="updateRow(${idx}, 'amount', parseFloat(this.value)||0)" style="width:100px"></td>

@@ -554,8 +554,8 @@ async function callClaudeVision(dataUrl) {
     const prompt = `你是一個台灣發票辨識專家。請仔細辨識這張照片中的所有發票（可能有多張），並回傳 JSON 陣列。
 
 每張發票請提取以下欄位：
-- invoice_number: 發票號碼（例如 WY-42845223，格式為 2個英文字母 + 8個數字）
-- invoice_date: 發票日期（格式：YYYY/MM/DD，民國年請轉換為西元年，例如 115年03月25日 → 2026/03/25。日期通常印在發票號碼下方）
+- invoice_number: 發票號碼（格式為 2個英文字母 + 8個數字，例如 WY42845223 或 ZF78255399）。發票號碼通常出現在「發票號碼：」後面，或是發票上方明顯位置。有些電子發票證明聯的發票號碼會寫成「發票號碼：XX12345678」的格式，請務必完整讀取。
+- invoice_date: 發票日期（格式：民國年 YYY/MM/DD，例如 115/03/25）。如果發票上是西元年份，請轉換為民國年（西元年 - 1911 = 民國年，例如 2026 → 115）。如果發票上已經是民國年，直接使用。
 - amount: 進項金額（未稅銷售額，數字。請找「銷售額」或「未稅」欄位，不要讀取商品數量或單價）
 - tax: 進項稅額（稅額，數字。請找「稅額」或「營業稅」欄位）
 - total: 進項總額（含稅總金額，數字。請找「總計」或「合計」或發票最上方的「總計」數字）
@@ -569,14 +569,14 @@ async function callClaudeVision(dataUrl) {
 3. 如果照片中有多張發票，請都辨識出來
 4. 如果某個欄位看不清楚，填入空字串 ""
 5. 金額一律為整數數字，不含逗號和幣別符號
-6. 民國年份請轉換為西元年份（民國年 + 1911 = 西元年）
+6. 西元年份請轉換為民國年份（西元年 - 1911 = 民國年，例如 2026 → 115）
 7. 進項總額 = 進項金額 + 進項稅額，如果只有總額沒有分開，請自行計算（金額 = Math.round(總額 / 1.05)，稅額 = 總額 - 金額）
 
 請只回傳 JSON 陣列，不要有其他文字。範例格式：
 [
   {
     "invoice_number": "WM-11868115",
-    "invoice_date": "2026/02/09",
+    "invoice_date": "115/02/09",
     "amount": 1515,
     "tax": 76,
     "total": 1591,
@@ -667,7 +667,7 @@ function renderResultTable() {
                     onchange="updateRow(${idx}, 'certificateType', this.value); saveCertTypeOption(this.value)"
                     placeholder="輸入或選擇" style="width:120px">
             </td>
-            <td><input type="text" value="${row.invoiceDate}" onchange="updateRow(${idx}, 'invoiceDate', this.value)" placeholder="YYYY/MM/DD"></td>
+            <td><input type="text" value="${row.invoiceDate}" onchange="updateRow(${idx}, 'invoiceDate', this.value)" placeholder="YYY/MM/DD"></td>
             <td><input type="number" value="${row.amount}" onchange="updateRow(${idx}, 'amount', parseFloat(this.value)||0)" style="width:100px"></td>
             <td><input type="number" value="${row.tax}" onchange="updateRow(${idx}, 'tax', parseFloat(this.value)||0)" style="width:100px"></td>
             <td><input type="number" value="${row.total}" onchange="updateRow(${idx}, 'total', parseFloat(this.value)||0)" style="width:100px"></td>

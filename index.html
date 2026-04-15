@@ -675,7 +675,7 @@ function renderResultTable() {
             <td><input type="number" value="${row.tax}" onchange="updateRow(${idx}, 'tax', parseFloat(this.value)||0)" style="width:100px"></td>
             <td><input type="number" value="${row.total}" onchange="updateRow(${idx}, 'total', parseFloat(this.value)||0)" style="width:100px"></td>
             <td><input type="text" value="${row.invoiceNumber}" onchange="updateRow(${idx}, 'invoiceNumber', this.value)" style="width:140px"></td>
-            <td><input type="text" value="${row.sellerTaxId}" onchange="updateRow(${idx}, 'sellerTaxId', this.value)" style="width:100px"></td>
+            <td><input type="text" value="${row.sellerTaxId}${row.sellerName ? row.sellerName : ''}" onchange="updateSellerField(${idx}, this.value)" style="width:180px"></td>
             <td>
                 <button onclick="deleteRow(${idx})" class="text-red-400 hover:text-red-600 text-lg" title="刪除">&times;</button>
             </td>
@@ -685,6 +685,19 @@ function renderResultTable() {
 
 function updateRow(idx, field, value) {
     resultRows[idx][field] = value;
+}
+
+// 解析「統編+賣方名稱」欄位，前8碼為統編，後面為名稱
+function updateSellerField(idx, value) {
+    const taxId = value.replace(/[^0-9A-Za-z\u4e00-\u9fff]/g, '').substring(0, 8).replace(/[^\d]/g, '') || value.substring(0, 8);
+    const match = value.match(/^(\d{8})(.*)/);
+    if (match) {
+        resultRows[idx].sellerTaxId = match[1];
+        resultRows[idx].sellerName = match[2];
+    } else {
+        resultRows[idx].sellerTaxId = value;
+        resultRows[idx].sellerName = '';
+    }
 }
 
 function deleteRow(idx) {
@@ -727,7 +740,7 @@ function exportXLS() {
             row.tax,
             row.total,
             row.invoiceNumber,
-            row.sellerTaxId
+            row.sellerTaxId + (row.sellerName || '')
         ]);
     });
 

@@ -561,7 +561,7 @@ async function callClaudeVision(dataUrl) {
 - total: 進項總額（含稅總金額，數字。請找「總計」或「合計」或發票最上方的「總計」數字）
 - seller_tax_id: 銷售方統編（⚠️ 必須是「賣方」的統一編號，8位數字。絕對不要填左上方「買方」的統編 53613149，那是我方的統編。要找的是發票右下角「賣　方：」後面的統編。）
 - certificate_type: 憑證類別（例如：三聯式、電子發票、收銀機發票、電算機發票）
-- seller_name: 賣方名稱（發票右下角「賣　方：」後面的公司名稱，不是發票最上方的公司名）
+- seller_name: 賣方名稱（電子發票證明聯的賣方名稱通常在發票最上方大字印刷，也會出現在右下角「賣　方：」後面。兩處都看，以較清楚的為準。）
 
 ⚠️ 重要注意事項：
 1. 金額辨識最重要：請找「銷售額」「稅額」「總計」這三個關鍵字對應的數字，不要把商品的數量、單價、公升數當成發票金額
@@ -639,7 +639,7 @@ async function callClaudeVision(dataUrl) {
             total: inv.total || 0,
             invoiceNumber: (inv.invoice_number || '').replace(/-/g, ''),
             sellerTaxId: inv.seller_tax_id || '',
-            sellerName: inv.seller_name || ''
+            sellerName: (inv.seller_name || '').replace(/股份有限公司|有限公司/g, '')
         }));
     } catch (e) {
         throw new Error('AI 回傳格式解析失敗');
